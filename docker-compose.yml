@@ -1,0 +1,153 @@
+#version: '3.8'
+
+services:
+  # Auth Service: Registration, Login, JWT token generation
+  auth_service:
+    image: alp_auth_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: auth_service
+    environment:
+      - FLASK_APP=services/auth_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-admin_secret}
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5001
+    networks:
+      - alp_network
+
+  # Courses Service: Browse courses, lessons, lock/unlock based on progress
+  courses_service:
+    image: alp_courses_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: courses_service
+    environment:
+      - FLASK_APP=services/courses_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+    ports:
+      - "5002:5002"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5002
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+  # Quizzes Service: Quiz retrieval, question delivery, answer grading (uses Stack)
+  quizzes_service:
+    image: alp_quizzes_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: quizzes_service
+    environment:
+      - FLASK_APP=services/quizzes_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+    ports:
+      - "5003:5003"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5003
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+  # Recommendations Service: Personalized lesson recommendations (uses PriorityQueue)
+  recommendations_service:
+    image: alp_recommendations_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: recommendations_service
+    environment:
+      - FLASK_APP=services/recommendations_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+    ports:
+      - "5004:5004"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5004
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+  # Search Service: Full-text search using Trie data structure
+  search_service:
+    image: alp_search_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: search_service
+    environment:
+      - FLASK_APP=services/search_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+    ports:
+      - "5005:5005"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5005
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+  # Progress Service: Learning progress tracking using Graph representation
+  progress_service:
+    image: alp_progress_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: progress_service
+    environment:
+      - FLASK_APP=services/progress_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+    ports:
+      - "5006:5006"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5006
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+  # Teacher Service: Course authoring, uploading, and student result analytics (uses HashTable cache)
+  teacher_service:
+    image: alp_teacher_service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: teacher_service
+    environment:
+      - FLASK_APP=services/teacher_service/app.py
+      - FLASK_ENV=development
+      - ALP_SECRET=${ALP_SECRET:-change_this_secret}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-admin_secret}
+    ports:
+      - "5007:5007"
+    volumes:
+      - .:/app
+    command: python -m flask run --host=0.0.0.0 --port=5007
+    depends_on:
+      - auth_service
+    networks:
+      - alp_network
+
+networks:
+  alp_network:
+    driver: bridge

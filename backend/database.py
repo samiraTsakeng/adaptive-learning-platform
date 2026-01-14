@@ -145,6 +145,18 @@ def get_user_id_by_username(username):
     return row[0] if row else None
 
 
+def get_user_info_by_username(username):
+    """Return (id, role) for the given username or (None, None)."""
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, role FROM users WHERE username = ?", (username,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None, None
+    return row[0], row[1]
+
+
 def get_user_max_score_for_lesson(user_id, lesson_id):
     conn = connect_db()
     cur = conn.cursor()

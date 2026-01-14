@@ -15,6 +15,7 @@ from backend.database import (
     connect_db,
     get_question_count_for_lesson,
     get_user_id_by_username,
+    get_user_info_by_username,
     has_user_passed_lesson,
 )
 from backend.search import search_courses, search_lessons
@@ -58,22 +59,47 @@ def token_required(f):
             payload = jwt.decode(token_str, app.config['SECRET_KEY'], algorithms=[JWT_ALGORITHM])
             g.user_id = payload.get('user_id')
             g.username = payload.get('username')
+            g.role = payload.get('role')
         except Exception as e:
             return jsonify({'message': 'Token is invalid', 'error': str(e)}), 401
         return f(*args, **kwargs)
     return decorated
 
 
+def teacher_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # must be authenticated and have role 'teacher'
+        if not getattr(g, 'user_id', None):
+            return jsonify({'message': 'Authentication required'}), 401
+        if getattr(g, 'role', None) != 'teacher':
+            return jsonify({'message': 'Teacher role required'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
 @app.route('/auth/register', methods=['POST'])
 def api_register():
+    """Register a new student. Teachers require admin token."""
     data = request.json or {}
     username = data.get('username')
     password = data.get('password')
+    requested_role = data.get('role', 'student')
+    admin_token = data.get('admin_token')
+    
     if not username or not password:
         return jsonify({'success': False, 'message': 'username and password required'}), 400
-    success, msg = register_user(username, password)
+    
+    # Only allow student registration by default; teachers need admin approval
+    role = 'student'
+    if requested_role == 'teacher':
+        if not admin_token or admin_token != os.environ.get('ADMIN_TOKEN', 'admin_secret'):
+            return jsonify({'success': False, 'message': 'Admin token required for teacher registration'}), 403
+        role = 'teacher'
+    
+    success, msg = register_user(username, password, role)
     if success:
-        return jsonify({'success': True, 'message': msg}), 201
+        return jsonify({'success': True, 'message': msg, 'role': role}), 201
     return jsonify({'success': False, 'message': msg}), 400
 
 
@@ -87,18 +113,19 @@ def api_login():
     success, result = login_user(username, password)
     if not success:
         return jsonify({'success': False, 'message': result}), 401
-    # create token
-    user_id = get_user_id_by_username(username)
+    # create token including role
+    user_id, role = get_user_info_by_username(username)
     payload = {
         'user_id': user_id,
         'username': username,
+        'role': role,
         'exp': datetime.utcnow() + timedelta(hours=JWT_EXP_DELTA_HOURS)
     }
     token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm=JWT_ALGORITHM)
     # ensure token is a native string (PyJWT may return bytes in some environments)
     if isinstance(token, bytes):
         token = token.decode('utf-8')
-    return jsonify({'success': True, 'token': token, 'user_id': user_id})
+    return jsonify({'success': True, 'token': token, 'user_id': user_id, 'role': role})
 
 
 @app.route('/courses', methods=['GET'])
@@ -245,6 +272,126 @@ def api_progress(user_id):
         pct = int(100 * passed / total) if total else 0
         report.append({'course_id': course_id, 'title': title, 'passed': passed, 'total': total, 'percent': pct})
     return jsonify(report)
+
+
+@app.route('/teacher/upload', methods=['POST'])
+@token_required
+@teacher_required
+def api_teacher_upload():
+    """Accept a course package JSON and insert into DB.
+
+    Expected JSON shape:
+    {
+      "title": "Course title",
+      "description": "...",
+      "lessons": [
+         {"title": "Lesson 1", "content": "...", "difficulty": 1, "quiz": [{"question": "...", "correct_answer": "..."}, ...]},
+         ...
+      ]
+    }
+    """
+    data = request.json or {}
+    title = data.get('title')
+    description = data.get('description', '')
+    lessons = data.get('lessons', [])
+    if not title or not isinstance(lessons, list):
+        return jsonify({'success': False, 'message': 'Invalid package format'}), 400
+
+    conn = connect_db()
+    cur = conn.cursor()
+    try:
+        # insert course
+        cur.execute("INSERT INTO courses (title, description) VALUES (?, ?)", (title, description))
+        course_id = cur.lastrowid
+
+        for lesson in lessons:
+            l_title = lesson.get('title')
+            content = lesson.get('content', '')
+            difficulty = lesson.get('difficulty', 1)
+            cur.execute("INSERT INTO lessons (course_id, title, content, difficulty) VALUES (?, ?, ?, ?)", (course_id, l_title, content, difficulty))
+            lesson_id = cur.lastrowid
+
+            # create quiz for lesson
+            cur.execute("INSERT INTO quizzes (lesson_id) VALUES (?)", (lesson_id,))
+            quiz_id = cur.lastrowid
+
+            for q in lesson.get('quiz', []):
+                qtext = q.get('question')
+                correct = q.get('correct_answer', '')
+                if qtext:
+                    cur.execute("INSERT INTO quiz_questions (quiz_id, question, correct_answer) VALUES (?, ?, ?)", (quiz_id, qtext, correct))
+
+        conn.commit()
+        return jsonify({'success': True, 'course_id': course_id})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/teacher/courses', methods=['GET'])
+@token_required
+@teacher_required
+def api_teacher_courses():
+    """List all courses created by the logged-in teacher.
+    
+    Time: O(c) where c = number of courses
+    Space: O(c)
+    """
+    conn = connect_db()
+    cur = conn.cursor()
+    # For now, return all courses (in future, add teacher_id column to track ownership)
+    cur.execute("SELECT id, title, description FROM courses")
+    courses = cur.fetchall()
+    conn.close()
+    data = [{'id': c[0], 'title': c[1], 'description': c[2]} for c in courses]
+    return jsonify(data)
+
+
+@app.route('/teacher/courses/<int:course_id>/results', methods=['GET'])
+@token_required
+@teacher_required
+def api_teacher_results(course_id):
+    """Get student results for a specific course.
+    
+    Time: O(s * l) where s = students, l = lessons in course
+    Space: O(r) where r = results
+    """
+    conn = connect_db()
+    cur = conn.cursor()
+    
+    # Get all lessons in the course
+    cur.execute("SELECT id FROM lessons WHERE course_id = ? ORDER BY id", (course_id,))
+    lesson_ids = [row[0] for row in cur.fetchall()]
+    
+    if not lesson_ids:
+        conn.close()
+        return jsonify([])
+    
+    # Get all results for these lessons
+    placeholders = ','.join('?' * len(lesson_ids))
+    cur.execute(
+        f"SELECT u.username, r.lesson_id, r.score, r.date FROM results r "
+        f"JOIN users u ON r.user_id = u.id "
+        f"WHERE r.lesson_id IN ({placeholders}) "
+        f"ORDER BY u.username, r.lesson_id, r.date DESC",
+        lesson_ids
+    )
+    
+    results = cur.fetchall()
+    conn.close()
+    
+    # Format results grouped by student
+    student_results = {}
+    for username, lesson_id, score, date in results:
+        if username not in student_results:
+            student_results[username] = []
+        student_results[username].append({'lesson_id': lesson_id, 'score': score, 'date': date})
+    
+    # Convert to array of objects
+    data = [{'student': username, 'results': res} for username, res in student_results.items()]
+    return jsonify(data)
 
 
 if __name__ == '__main__':

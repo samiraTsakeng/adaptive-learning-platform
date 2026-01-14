@@ -1,0 +1,23 @@
+{
+  "title": "math",
+  "description": "calculate",
+  "lessons": [
+    {
+      "title": "addition",
+      "content": "1+1=2",
+      "difficulty": 1,
+      "quiz": [
+        {
+          "question": "2x+1=?",
+          "correct_answer": "-1/2",
+          "choices": []
+        },
+        {
+          "question": "1+2=",
+          "correct_answer": "3",
+          "choices": []
+        }
+      ]
+    }
+  ]
+}

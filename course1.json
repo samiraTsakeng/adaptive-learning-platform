@@ -1,0 +1,141 @@
+{
+  "title": "Python Basics",
+  "description": "Introduction to Python",
+  "lessons": [
+    {
+      "title": "Variables",
+      "content": "Learn variables in Python",
+      "difficulty": 1,
+      "quiz": [
+        {
+          "question": "What symbol is used for assignment in Python?",
+          "correct_answer": "="
+        },
+        {
+          "question": "How do you start a comment in Python?",
+          "correct_answer": "#"
+        },
+        {
+          "question": "Which keyword defines a function?",
+          "correct_answer": "def"
+        },
+        {
+          "question": "What data type holds True/False?",
+          "correct_answer": "bool"
+        },
+        {
+          "question": "How do you create a list literal?",
+          "correct_answer": "[]"
+        }
+      ]
+    },
+    {
+      "title": "Loops",
+      "content": "Learn loops in Python",
+      "difficulty": 2,
+      "quiz": [
+        {
+          "question": "Which loop repeats until a condition becomes False?",
+          "correct_answer": "while"
+        },
+        {
+          "question": "Which loop iterates over items in a sequence?",
+          "correct_answer": "for"
+        },
+        {
+          "question": "Which statement exits the current loop?",
+          "correct_answer": "break"
+        },
+        {
+          "question": "Which statement skips to the next loop iteration?",
+          "correct_answer": "continue"
+        },
+        {
+          "question": "How do you loop over numbers 0..4 using range?",
+          "correct_answer": "for i in range(5):"
+        }
+      ]
+    },
+    {
+      "title": "Functions",
+      "content": "Defining and calling functions",
+      "difficulty": 2,
+      "quiz": [
+        {
+          "question": "Which keyword is used to return a value from a function?",
+          "correct_answer": "return"
+        },
+        {
+          "question": "How do you define a function that takes two parameters?",
+          "correct_answer": "def f(a, b):"
+        },
+        {
+          "question": "What built-in allows you to see a function's docstring?",
+          "correct_answer": "help"
+        },
+        {
+          "question": "What term describes a function defined inside another function?",
+          "correct_answer": "nested function"
+        },
+        {
+          "question": "How do you call a function named 'foo'?",
+          "correct_answer": "foo()"
+        }
+      ]
+    },
+    {
+      "title": "Data Types",
+      "content": "Strings, lists, tuples, dicts",
+      "difficulty": 2,
+      "quiz": [
+        {
+          "question": "Which type is an ordered, mutable sequence?",
+          "correct_answer": "list"
+        },
+        {
+          "question": "Which type is immutable and ordered like a list?",
+          "correct_answer": "tuple"
+        },
+        {
+          "question": "Which type stores key/value pairs?",
+          "correct_answer": "dict"
+        },
+        {
+          "question": "Which method uppercases a string 's'?",
+          "correct_answer": "s.upper()"
+        },
+        {
+          "question": "How do you get the length of a list 'L'?",
+          "correct_answer": "len(L)"
+        }
+      ]
+    },
+    {
+      "title": "File I/O",
+      "content": "Reading and writing files",
+      "difficulty": 2,
+      "quiz": [
+        {
+          "question": "Which function opens a file in Python?",
+          "correct_answer": "open"
+        },
+        {
+          "question": "Which mode opens a file for writing, erasing existing content?",
+          "correct_answer": "w"
+        },
+        {
+          "question": "Which method reads the entire file into a string?",
+          "correct_answer": "read()"
+        },
+        {
+          "question": "Which statement ensures a file is closed automatically?",
+          "correct_answer": "with open(...) as f:"
+        },
+        {
+          "question": "Which method writes text to a file object 'f'?",
+          "correct_answer": "f.write()"
+        }
+      ]
+    }
+  ]
+}

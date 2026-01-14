@@ -21,14 +21,17 @@ def load_users_into_hash_table():
     conn.close()
 
 
-def register_user(username: str, password: str):
-    """Register a new user. Returns (success: bool, message: str)."""
+def register_user(username: str, password: str, role: str = 'student'):
+    """Register a new user. Returns (success: bool, message: str).
+
+    role: either 'student' or 'teacher'
+    """
     hashed = _hash_password(password)
     conn = connect_db()
     cur = conn.cursor()
     try:
         cur.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-                    (username, hashed, 'student'))
+                    (username, hashed, role))
         conn.commit()
         # update in-memory cache if present
         global USERS_HASH

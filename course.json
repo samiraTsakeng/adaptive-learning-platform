@@ -1,0 +1,18 @@
+{
+  "title": "data structure",
+  "description": "learning algorithm and learning how they can be applied",
+  "lessons": [
+    {
+      "title": "introduction",
+      "content": "this is the introduction to this course",
+      "difficulty": 1,
+      "quiz": [
+        {
+          "question": "what is data structure?",
+          "correct_answer": "test",
+          "choices": []
+        }
+      ]
+    }
+  ]
+}
