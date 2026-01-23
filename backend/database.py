@@ -42,6 +42,7 @@ def create_tables():
     CREATE TABLE IF NOT EXISTS quizzes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         lesson_id INTEGER,
+        type TEXT,
         FOREIGN KEY(lesson_id) REFERENCES lessons(id)
     )
     """)

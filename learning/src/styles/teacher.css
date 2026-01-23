@@ -1,0 +1,16 @@
+.teacher-dashboard,
+.upload-box {
+  padding: 30px;
+}
+
+textarea {
+  width: 100%;
+  height: 80px;
+  margin-bottom: 15px;
+}
+.lesson-box {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 6px;
+}
